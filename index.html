@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Academia Pro</title>
+    <style>
+        :root {
+            --bg: #f2f2f7;
+            --card: #ffffff;
+            --primary: #007aff;
+            --success: #34c759;
+            --error: #ff3b30;
+            --text: #1c1c1e;
+            --secondary: #8e8e93;
+        }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        .container { max-width: 500px; width: 100%; padding-top: env(safe-area-inset-top); }
+        
+        /* Menú */
+        #menu-screen { display: block; }
+        .subject-title { font-size: 2em; font-weight: 800; margin-bottom: 5px; }
+        .subject-subtitle { color: var(--secondary); margin-bottom: 30px; font-weight: 500; }
+        
+        .topic-card { 
+            background: var(--card); 
+            padding: 20px; 
+            border-radius: 15px; 
+            margin-bottom: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            cursor: pointer; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+            transition: transform 0.1s;
+            user-select: none;
+        }
+        .topic-card:active { transform: scale(0.98); background: #f9f9f9; }
+        .topic-info h3 { margin: 0; font-size: 1.1em; }
+        .topic-info p { margin: 5px 0 0; color: var(--secondary); font-size: 0.9em; }
+        .chevron { color: var(--primary); font-weight: bold; }
+
+        /* Pantalla de Test */
+        #quiz-screen { display: none; }
+        .quiz-header { display: flex; align-items: center; margin-bottom: 10px; }
+        .back-link { color: var(--primary); cursor: pointer; font-weight: 600; text-decoration: none; padding: 10px 0; display: inline-block; }
+        .card { background: var(--card); border-radius: 20px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h2 { font-size: 1.3em; margin-bottom: 20px; line-height: 1.3; }
+        
+        .option { 
+            background: var(--bg); 
+            border: 1px solid #e5e5ea; 
+            border-radius: 12px; 
+            padding: 18px; 
+            margin-bottom: 12px; 
+            cursor: pointer; 
+            font-weight: 500; 
+            transition: 0.2s;
+        }
+        .option.correct { background: var(--success) !important; color: white !important; border-color: var(--success) !important; }
+        .option.incorrect { background: var(--error) !important; color: white !important; border-color: var(--error) !important; }
+        
+        .nav-buttons { display: flex; gap: 10px; }
+        button { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 600; cursor: pointer; flex: 1; font-size: 1em; }
+        button:disabled { opacity: 0.3; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="menu-screen">
+        <div style="text-align: left; margin-bottom: 30px;">
+            <h1 class="subject-title">Mis Asignaturas</h1>
+            <p class="subject-subtitle">Toca una asignatura para ver sus temas</p>
+        </div>
+
+        <div class="topic-card" onclick="seleccionarAsignatura('DEMC')" style="background: var(--primary); color: white; border: none;">
+            <div class="topic-info">
+                <h3 style="color: white; margin: 0;">Asignatura 1: DEMC</h3>
+            </div>
+        </div>
+
+        <div class="topic-card" onclick="seleccionarAsignatura('MKD')" style="background: #5856d6; color: white; border: none; margin-bottom: 30px;">
+            <div class="topic-info">
+                <h3 style="color: white; margin: 0;">Asignatura 2: MKD</h3>
+            </div>
+        </div>
+
+        <h4 style="color: var(--secondary); margin-bottom: 15px; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px;">Temas disponibles:</h4>
+        
+        <div id="lista-temas"></div>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="quiz-header">
+            <a class="back-link" onclick="showMenu()">← Volver al listado</a>
+        </div>
+        
+        <div id="question-container"></div>
+
+        <div class="nav-buttons">
+            <button id="prevBtn" onclick="changeQuestion(-1)">Anterior</button>
+            <button id="nextBtn" onclick="changeQuestion(1)">Siguiente</button>
+        </div>
+    </div>
+</div>
+
+<script src="preguntas.js"></script>
+
+<script>
+    let currentTopicIndex = -1;
+    let currentQIndex = 0;
+
+    // 1. FUNCIÓN PARA CAMBIAR DE ASIGNATURA
+    function seleccionarAsignatura(nombre) {
+        if (typeof academia !== 'undefined' && academia[nombre]) {
+            database = academia[nombre];
+            actualizarListaTemas();
+            window.scrollTo(0,0);
+        }
+    }
+
+    // 2. FUNCIÓN PARA DIBUJAR LOS TEMAS EN PANTALLA
+    function actualizarListaTemas() {
+        const contenedor = document.getElementById('lista-temas');
+        contenedor.innerHTML = ""; 
+
+        database.forEach((tema, index) => {
+            contenedor.innerHTML += `
+                <div class="topic-card" onclick="startQuiz(${index})">
+                    <div class="topic-info">
+                        <h3>${tema.title}</h3>
+                        <p>${tema.questions.length} preguntas</p>
+                    </div>
+                    <div class="chevron">→</div>
+                </div>
+            `;
+        });
+    }
+
+    // 3. FUNCIÓN PARA VOLVER AL MENÚ
+    function showMenu() {
+        document.getElementById('menu-screen').style.display = 'block';
+        document.getElementById('quiz-screen').style.display = 'none';
+        window.scrollTo(0,0);
+    }
+
+    // 4. FUNCIÓN PARA INICIAR UN TEST
+    function startQuiz(index) {
+        currentTopicIndex = index;
+        currentQIndex = 0;
+        document.getElementById('menu-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        renderQuestion();
+        window.scrollTo(0,0);
+    }
+
+    function renderQuestion() {
+        const container = document.getElementById('question-container');
+        const question = database[currentTopicIndex].questions[currentQIndex];
+        
+        container.innerHTML = `
+            <div class="card">
+                <p style="font-size: 0.8em; color: var(--secondary); margin-bottom: 10px;">
+                    Pregunta ${currentQIndex + 1} de ${database[currentTopicIndex].questions.length}
+                </p>
+                <h2>${question.q}</h2>
+                <div id="options-list">
+                    ${question.options.map((opt, i) => {
+                        const isCorrect = i === question.correct;
+                        const studyStyle = isCorrect ? 'font-weight: 800; color: #0055b3; border: 1px dashed #007aff;' : '';
+                        const bullet = isCorrect ? '● ' : '';
+                        return `<div class="option" style="${studyStyle}" onclick="checkAnswer(this, ${i}, ${question.correct})">${bullet}${opt}</div>`;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('prevBtn').disabled = currentQIndex === 0;
+        document.getElementById('nextBtn').disabled = currentQIndex === database[currentTopicIndex].questions.length - 1;
+    }
+
+    function checkAnswer(el, selected, correct) {
+        const parent = document.getElementById('options-list');
+        if (parent.classList.contains('answered')) return;
+        
+        parent.classList.add('answered');
+        const options = parent.querySelectorAll('.option');
+        
+        if (selected === correct) {
+            el.classList.add('correct');
+        } else {
+            el.classList.add('incorrect');
+            options[correct].classList.add('correct');
+        }
+    }
+
+    function changeQuestion(dir) {
+        currentQIndex += dir;
+        renderQuestion();
+        window.scrollTo(0,0);
+    }
+
+    // Al cargar la página, mostramos la primera asignatura por defecto
+    window.onload = function() {
+        if (typeof academia !== 'undefined') {
+            database = academia["DEMC"];
+            actualizarListaTemas();
+        }
+    };
+</script>
+</body>
+</html>
